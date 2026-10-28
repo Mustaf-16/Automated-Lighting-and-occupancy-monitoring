@@ -14,9 +14,8 @@
 #define RELAY_ON_LEVEL       1      
 
 #define VACANCY_TIMEOUT_S    300     
-#define PIR_POLL_MS          100    
-#define CONTROL_TICK_MS      250    
-#define STATUS_PERIOD_S      10   
+#define CONTROL_TICK_MS      250     
+#define STATUS_PERIOD_S      20     
 
 static const char *TAG = "lecture_room";
 
@@ -29,6 +28,7 @@ typedef struct {
 
 static room_state_t      s_room;
 static SemaphoreHandle_t s_room_mutex;
+static TaskHandle_t      s_pir_task_handle = NULL; /* Handle to notify pir_task from ISR */
 
 /* Call with s_room_mutex held: make outputs match the state. */
 static void apply_outputs_locked(void)
@@ -42,12 +42,27 @@ static void apply_outputs_locked(void)
     gpio_set_level(PIN_OCC_LED, s_room.occupied);
 }
 
+/* Interrupt Service Routine (ISR) triggered by PIR motion pin */
+static void IRAM_ATTR pir_isr_handler(void *arg)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    if (s_pir_task_handle != NULL) {
+        /* Unblock pir_task directly from the ISR */
+        vTaskNotifyGiveFromISR(s_pir_task_handle, &xHigherPriorityTaskWoken);
+        
+        /* Force a context switch if pir_task has a higher priority than the current task */
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+
 static void gpio_setup(void)
 {
+    /* Configure PIR pin for rising edge interrupt (triggers when PIR goes HIGH) */
     gpio_config_t in = {
         .pin_bit_mask = 1ULL << PIN_PIR,
         .mode = GPIO_MODE_INPUT,
         .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_POSEDGE,
     };
     gpio_config(&in);
 
@@ -59,13 +74,20 @@ static void gpio_setup(void)
 
     gpio_set_level(PIN_RELAY, !RELAY_ON_LEVEL);     /* light OFF at boot */
     gpio_set_level(PIN_OCC_LED, 0);
+
+    /* Install global GPIO ISR service and register handler for the PIR pin */
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(PIN_PIR, pir_isr_handler, NULL);
 }
 
-/*  tasks */
+/* Interrupt-driven PIR Task */
 static void pir_task(void *arg)
 {
     while(1) {
-        if (gpio_get_level(PIN_PIR)) {
+        /* Wait indefinitely (portMAX_DELAY) until notified by pir_isr_handler */
+        uint32_t ulNotificationValue = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        if (ulNotificationValue > 0) {
             bool newly_occupied = false;
 
             xSemaphoreTake(s_room_mutex, portMAX_DELAY);
@@ -79,10 +101,9 @@ static void pir_task(void *arg)
             xSemaphoreGive(s_room_mutex);
 
             if (newly_occupied) {
-                ESP_LOGI(TAG, "Motion detected: room OCCUPIED");
+                ESP_LOGI(TAG, "Motion detected (ISR): room OCCUPIED");
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(PIR_POLL_MS));
     }
 }
 
@@ -132,10 +153,15 @@ static void control_task(void *arg)
 void app_main(void)
 {
     s_room_mutex = xSemaphoreCreateMutex();
+
+    /* 1. Create the PIR task first and store its handle */
+    xTaskCreate(pir_task, "pir", 2048, NULL, 5, &s_pir_task_handle);
+    
+    /* 2. Create the control task */
+    xTaskCreate(control_task, "control", 3072, NULL, 4, NULL);
+
+    /* 3. Setup GPIO and attach ISR after task handle is initialized */
     gpio_setup();
 
-    xTaskCreate(pir_task,     "pir",     2048, NULL, 5, NULL); 
-    xTaskCreate(control_task, "control", 3072, NULL, 4, NULL); 
-
-    ESP_LOGI(TAG, "Lecture room controller started (timeout %d s)", VACANCY_TIMEOUT_S);
+    ESP_LOGI(TAG, "Lecture room controller started (Interrupt-driven, timeout %d s)", VACANCY_TIMEOUT_S);
 }
