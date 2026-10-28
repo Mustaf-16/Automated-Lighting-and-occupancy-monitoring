@@ -1,0 +1,20 @@
+# ESP-IDF build output
+/build/
+
+# ESP-IDF generated configuration files
+sdkconfig.old
+/managed_components/
+
+# CMake and Ninja generated files outside the build directory
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+.ninja_deps
+.ninja_log
+
+# Local editor and operating-system files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo

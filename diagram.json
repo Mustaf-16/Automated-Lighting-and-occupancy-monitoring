@@ -1,0 +1,62 @@
+{
+  "version": 1.0,
+  "author": "Mustafa Kavuma",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-pir-motion-sensor",
+      "id": "pir1",
+      "top": -130.4,
+      "left": -189.78,
+      "attrs": {}
+    },
+    { "type": "wokwi-relay-module", "id": "relay1", "top": 230.6, "left": -201.6, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "rLight",
+      "top": 330,
+      "left": -60,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledLight",
+      "top": 380,
+      "left": -140,
+      "attrs": { "color": "yellow", "label": "ROOM LIGHTS" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "rOcc",
+      "top": 90.35,
+      "left": 124.8,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledOcc",
+      "top": 102,
+      "left": 176.6,
+      "attrs": { "color": "green", "label": "OCCUPIED" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "pir1:VCC", "esp:3V3", "red", [] ],
+    [ "pir1:GND", "esp:GND.1", "black", [] ],
+    [ "pir1:OUT", "esp:27", "green", [] ],
+    [ "relay1:VCC", "esp:5V", "red", [] ],
+    [ "relay1:GND", "esp:GND.1", "black", [] ],
+    [ "relay1:IN", "esp:26", "blue", [] ],
+    [ "relay1:COM", "esp:3V3", "orange", [] ],
+    [ "relay1:NO", "rLight:1", "orange", [] ],
+    [ "rLight:2", "ledLight:A", "orange", [] ],
+    [ "ledLight:C", "esp:GND.1", "black", [] ],
+    [ "rOcc:2", "ledOcc:A", "green", [] ],
+    [ "ledOcc:C", "esp:GND.2", "black", [] ],
+    [ "rOcc:1", "esp:19", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
