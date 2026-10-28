@@ -8,7 +8,6 @@
 
 #define ROOM_ID 2
 
-/* ---------- configuration ---------- */
 #define PIN_PIR              27
 #define PIN_RELAY            26     
 #define PIN_OCC_LED          19     
@@ -63,7 +62,7 @@ static void gpio_setup(void)
     gpio_set_level(PIN_OCC_LED, 0);
 }
 
-/* ---------- tasks ---------- */
+/* tasks */
 static void pir_task(void *arg)
 {
     while(1) {

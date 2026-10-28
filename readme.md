@@ -25,10 +25,29 @@ Install the following in Visual Studio Code:
 - Wokwi for VS Code extension
 - ESP-IDF and its required tools
 
-The Wokwi extension may require a Wokwi account or token, depending on your
-setup.
+## Clone and prepare the project
 
-## Run the simulation in VS Code
+Open PowerShell or a terminal and clone the repository:
+
+```powershell
+git clone https://github.com/Mustaf-16/Automated-Lighting-and-occupancy-monitoring.git "Automated -Lighting-and-occupancy monitoring"
+cd "Automated -Lighting-and-occupancy monitoring"
+code .
+```
+
+After VS Code opens the project:
+
+1. Install the **Espressif IDF** and **Wokwi** extensions if they are not
+   already installed.
+2. Use `Ctrl+Shift+P` and run **ESP-IDF: Configure ESP-IDF extension** if
+   ESP-IDF has not been configured on your computer.
+3. Confirm that the ESP-IDF extension recognizes this folder as an ESP-IDF
+   project.
+
+The repository does not require a separate package installation command. Its
+ESP-IDF dependencies are described by the project configuration.
+
+## Build and run the simulation in VS Code
 
 1. Open this project folder in Visual Studio Code.
 2. Select the ESP-IDF target using the Espressif IDF extension if prompted.
@@ -44,6 +63,16 @@ setup.
 The firmware and ELF paths used by Wokwi are configured in
 [`wokwi.toml`](./wokwi.toml). The project must be built before starting the
 simulation so that `build/SmartRoom.bin` and `build/SmartRoom.elf` exist.
+
+You can also build from the ESP-IDF terminal after the ESP-IDF environment has
+been configured:
+
+```powershell
+idf.py build
+```
+
+Do not run `idf.py flash` for the Wokwi workflow. Wokwi loads the generated
+firmware from the `build` directory automatically.
 
 ## Test the simulation
 
